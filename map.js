@@ -57,41 +57,22 @@ map.on('load', async () => {
     console.log("Cambridge bike lanes added to the map.");
     //3.1 fetching and parsing csv
     let jsonData;
-    let trips;
+    let trips = await d3.csv(
+        'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv',
+        (trip) => {
+          trip.started_at = new Date(trip.started_at);
+          trip.ended_at = new Date(trip.ended_at);
+          return trip;
+        },
+      );
     try {
         const jsonurl = "https://dsc106.com/labs/lab07/data/bluebikes-stations.json";
         // Await JSON fetch
         const jsonData = await d3.json(jsonurl);
         console.log('Loaded JSON Data:', jsonData); // Log to verify structure
-        let stations = jsonData.data.stations;
+        const stations = computeStationTraffic(jsonData.data.stations, trips);
         console.log('Stations Array:', stations);
 
-        //load traffic data
-        const csvUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
-        trips = await d3.csv(csvUrl);
-        console.log('Loaded Traffic Data:', trips);
-
-        const departures = d3.rollup(
-            trips,
-            (v) => v.length,
-            (d) => d.start_station_id
-        );
-        const arrivals = d3.rollup(
-            trips,
-            (v) => v.length,
-            (d) => d.end_station_id
-        );
-        console.log("Departures:", departures);
-        console.log("Arrivals:", arrivals);
-
-        //stations
-        stations = stations.map((station) => {
-            const id = station.short_name; 
-            station.arrivals = arrivals.get(id) ?? 0;
-            station.departures = departures.get(id) ?? 0;
-            station.totalTraffic = station.arrivals + station.departures;
-            return station;
-        });
         console.log("Stations with Traffic Data:", stations);
         const radiusScale = d3
         .scaleSqrt()
@@ -99,7 +80,7 @@ map.on('load', async () => {
         .range([0, 25]);
         const circles = svg
     .selectAll('circle')
-    .data(stations)
+    .data(stations,(d) => d.short_name)
     .enter()
     .append('circle')
     .attr('r', d => radiusScale(d.totalTraffic)) // Radius of the circle
@@ -130,12 +111,11 @@ map.on('load', async () => {
     console.log("Station markers added.");
 
     //step 5
-    const timeSlider = document.getElementById('#time-slider');
-    const selectedTime = document.getElementById('#selected-time');
-    const anyTimeLabel = document.getElementById('#any-time');
-    let timeFilter=-1;
+    const timeSlider = document.getElementById('time-slider');
+    const selectedTime = document.getElementById('selected-time');
+    const anyTimeLabel = document.getElementById('any-time');
     function updateTimeDisplay() {
-        timeFilter = Number(timeSlider.value); // Get slider value
+        let timeFilter = Number(timeSlider.value); // Get slider value
       
         if (timeFilter === -1) {
           selectedTime.textContent = ''; // Clear time display
@@ -144,16 +124,34 @@ map.on('load', async () => {
           selectedTime.textContent = formatTime(timeFilter); // Display formatted time
           anyTimeLabel.style.display = 'none'; // Hide "(any time)"
         }
-        console.log("Time Filter Updated:", timeFilter);
-        // Trigger filtering logic which will be implemented in the next step
+      
+        // Call updateScatterPlot to reflect the changes on the map
+        updateScatterPlot(timeFilter);
       }
-      timeSlider.addEventListener('input', updateTimeDisplay);
-      updateTimeDisplay();
-      console.log("Time Filter initialzed:");
+    function updateScatterPlot(timeFilter) {
+        // Get only the trips that match the selected time filter
+        const filteredTrips = filterTripsbyTime(trips, timeFilter);
+    
+        // Recompute station traffic based on the filtered trips
+        const filteredStations = computeStationTraffic(stations, filteredTrips);
+    
+        // Update the scatterplot by adjusting the radius of circles
+        circles
+        .data(filteredStations)
+        .join('circle') // Ensure the data is bound correctly
+        .attr('r', (d) => radiusScale(d.totalTraffic)); // Update circle sizes
+    }
+    timeSlider.addEventListener('input', updateTimeDisplay);
+    updateTimeDisplay();
+    console.log("Time Filter initialzed:");
+
 
     } catch (error) {
     console.error('Error loading JSON:', error); // Handle errors
   }
+
+
+
 
 
         
@@ -166,4 +164,45 @@ return { cx: x, cy: y }; // Return as object for use in SVG attributes
 function formatTime(minutes) {
     const date = new Date(0, 0, 0, 0, minutes); // Set hours & minutes
     return date.toLocaleString('en-US', { timeStyle: 'short' }); // Format as HH:MM AM/PM
+  }
+//step 5.3
+function computeStationTraffic(stations, trips) {
+    // Compute departures and arrivals
+    const departures = d3.rollup(
+      trips,
+      (v) => v.length,
+      (d) => d.start_station_id,
+    );
+  
+    const arrivals = d3.rollup(
+        trips,
+        (v) => v.length,
+        (d) => d.end_station_id,
+      );
+    // Update each station..
+    return stations.map((station) => {
+      let id = station.short_name;
+      station.arrivals = arrivals.get(id) ?? 0;
+      station.departures = departures.get(id) ?? 0;
+      station.totalTraffic = station.arrivals + station.departures;
+      return station;
+    });
+  }
+  function minutesSinceMidnight(date) {
+    return date.getHours() * 60 + date.getMinutes();
+  }
+  function filterTripsbyTime(trips, timeFilter) {
+    return timeFilter === -1
+      ? trips // If no filter is applied (-1), return all trips
+      : trips.filter((trip) => {
+          // Convert trip start and end times to minutes since midnight
+          const startedMinutes = minutesSinceMidnight(trip.started_at);
+          const endedMinutes = minutesSinceMidnight(trip.ended_at);
+  
+          // Include trips that started or ended within 60 minutes of the selected time
+          return (
+            Math.abs(startedMinutes - timeFilter) <= 60 ||
+            Math.abs(endedMinutes - timeFilter) <= 60
+          );
+        });
   }
