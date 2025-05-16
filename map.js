@@ -112,7 +112,8 @@ map.on('load', async () => {
         d3.select(this)
             .append('title')
             .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
-    }); // Circle opacity
+    }); 
+    // Circle opacity
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
     circles
@@ -128,6 +129,28 @@ map.on('load', async () => {
     map.on('moveend', updatePositions); // Final adjustment after movement ends
     console.log("Station markers added.");
 
+    //step 5
+    const timeSlider = document.getElementById('#time-slider');
+    const selectedTime = document.getElementById('#selected-time');
+    const anyTimeLabel = document.getElementById('#any-time');
+    let timeFilter=-1;
+    function updateTimeDisplay() {
+        timeFilter = Number(timeSlider.value); // Get slider value
+      
+        if (timeFilter === -1) {
+          selectedTime.textContent = ''; // Clear time display
+          anyTimeLabel.style.display = 'block'; // Show "(any time)"
+        } else {
+          selectedTime.textContent = formatTime(timeFilter); // Display formatted time
+          anyTimeLabel.style.display = 'none'; // Hide "(any time)"
+        }
+        console.log("Time Filter Updated:", timeFilter);
+        // Trigger filtering logic which will be implemented in the next step
+      }
+      timeSlider.addEventListener('input', updateTimeDisplay);
+      updateTimeDisplay();
+      console.log("Time Filter initialzed:");
+
     } catch (error) {
     console.error('Error loading JSON:', error); // Handle errors
   }
@@ -140,3 +163,7 @@ const point = new mapboxgl.LngLat(+station.lon, +station.lat); // Convert lon/la
 const { x, y } = map.project(point); // Project to pixel coordinates
 return { cx: x, cy: y }; // Return as object for use in SVG attributes
 }
+function formatTime(minutes) {
+    const date = new Date(0, 0, 0, 0, minutes); // Set hours & minutes
+    return date.toLocaleString('en-US', { timeStyle: 'short' }); // Format as HH:MM AM/PM
+  }
