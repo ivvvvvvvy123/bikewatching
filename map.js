@@ -18,6 +18,12 @@ const map = new mapboxgl.Map({
   maxZoom: 18, // Maximum allowed zoom
 });
 
+const stationFlow = d3.scaleQuantize()
+    .domain([0, 1])
+    .range([0, 0.5, 1]);
+
+
+
 map.on('load', async () => {
     //code
     console.log("Map loaded.");
@@ -93,7 +99,10 @@ map.on('load', async () => {
         d3.select(this)
             .append('title')
             .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
-    }); 
+    })
+    .style('--departure-ratio', (d) =>
+    stationFlow(d.departures / d.totalTraffic)
+  ); 
     // Circle opacity
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
@@ -140,7 +149,10 @@ map.on('load', async () => {
         circles
         .data(filteredStations, (d) => d.short_name)
         .join('circle') // Ensure the data is bound correctly
-        .attr('r', (d) => radiusScale(d.totalTraffic)); // Update circle sizes
+        .attr('r', (d) => radiusScale(d.totalTraffic))
+        .style('--departure-ratio', (d) =>
+      stationFlow(d.departures / d.totalTraffic||0)
+      ); // Update circle sizes
     }
     timeSlider.addEventListener('input', updateTimeDisplay);
     updateTimeDisplay();

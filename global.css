@@ -22,11 +22,29 @@ body {
     height: 100%;
     pointer-events: none;
   }
-#map svg circle{
-  fill:steelblue;
-  fill-opacity: 60%;
-  stroke:white;
-  pointer-events: auto;
+  #map svg circle {
+    --color-departures: steelblue;
+    --color-arrivals: darkorange;
+    --color: color-mix(
+        in oklch,
+        var(--color-departures) calc(100% * var(--departure-ratio)),
+        var(--color-arrivals)
+    );
+    fill: var(--color);
+    transition: fill 0.3s ease;
+    pointer-events: auto;
+  }
+
+.swatch {
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 0.3em;
+  --color: color-mix(
+    in oklch,
+    var(--color-departures) calc(100% * var(--departure-ratio)),
+    var(--color-arrivals)
+  );
+  background-color: var(--color);
 }
 header{
   display: flex;
@@ -37,3 +55,4 @@ header{
 label{
   margin-left: auto;
 }
+
