@@ -56,3 +56,33 @@ label{
   margin-left: auto;
 }
 
+/* Legend Styles */
+.legend {
+  display: flex;
+  gap: 1px;
+  margin-block: 1em;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  font-weight: bold;
+  color: white;
+  margin:auto;
+}
+
+.legend > div {
+  flex: 1;
+  padding: 0.5em 1em;
+  text-align: center;
+  transition: background-color 0.3s ease;
+  color: white;
+  --color-departures: steelblue;
+  --color-arrivals: darkorange;
+  background-color: color-mix(
+      in oklch,
+      var(--color-departures) calc(100% * var(--departure-ratio)),
+      var(--color-arrivals)
+  );
+}
+
+
