@@ -49,11 +49,22 @@ body {
 header{
   display: flex;
   gap: 1em;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom:1em;
+  width: 100%;
 }
-label{
+label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+
   margin-left: auto;
+}
+label input[type="range"] {
+  width: 300px;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
 }
 
 /* Legend Styles */
